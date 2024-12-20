@@ -3,8 +3,8 @@ import z from "zod";
 declare global {
     namespace Express {
         export interface Request{
-            role?: "Teacher" | "Student";
-            userId?: string;
+            studentId?: string;
+            creatorId?: string;
         }
     }
 }

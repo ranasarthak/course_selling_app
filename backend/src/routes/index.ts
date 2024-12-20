@@ -1,12 +1,12 @@
 import express from "express";
 import studentRouter from "./student";
-import teacherRouter from "./teacher";
-import { coursesRouter } from "./courses";
+import coursesRouter from "./courses";
+import creatorRouter from "./creator";
 
 const router = express.Router();
 
 router.use("/student", studentRouter);
-router.use("/teacher", teacherRouter);
+router.use("/creator", creatorRouter);
 router.use("/courses", coursesRouter);
 
 export default router;

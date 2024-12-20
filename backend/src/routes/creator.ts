@@ -4,16 +4,13 @@ import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config";
 import bcrypt from "bcrypt";
-import authMiddleware from "../middleware/auth";
-import teacherAuth from "../middleware/teacherAuth";
+import authMiddleware from "../middleware/studentAuth";
+import creatorAuthMiddleware from "../middleware/creatorAuth";
 
-const teacherRouter = express.Router();
+const creatorRouter = express.Router();
 const client = new PrismaClient();
 
-teacherRouter.use(authMiddleware);
-teacherRouter.use(teacherAuth);
-
-teacherRouter.post("/signup", async(req, res) => {
+creatorRouter.post("/signup", async(req, res) => {
     const parsedData = SignUpSchema.safeParse(req.body);
     if(!parsedData.success) {
         res.status(400).json({
@@ -24,31 +21,29 @@ teacherRouter.post("/signup", async(req, res) => {
 
     const hashedPassword = await bcrypt.hash(parsedData.data.password, 10);
     try {
-        const user = await client.user.create({
+        const creator = await client.creator.create({
             data: {
                 username: parsedData.data.username,
                 password: hashedPassword,
-                name: parsedData.data.name,
-                role: "Teacher"
+                name: parsedData.data.name
             }
         })
         const token = jwt.sign({
-            userId: user.id,
-            role: user.role
+            creator: creator.id
         }, JWT_SECRET)
         res.json({
-            userId: user.id,
+            creatorId: creator.id,
             token
         })
     } catch (error) {
         res.status(400).json({
-            message: "User signup failed"
+            message: "creator signup failed"
         })
     }
 })
 
 
-teacherRouter.post("/signin", async(req, res) => {
+creatorRouter.post("/signin", async(req, res) => {
     const parsedData = SignInSchema.safeParse(req.body);
     if(!parsedData.success) {
         res.status(400).json({
@@ -59,20 +54,19 @@ teacherRouter.post("/signin", async(req, res) => {
 
     try {
         const  hashedPassword = await bcrypt.hash(parsedData.data.password, 10);
-        const user = await client.user.findUnique({
+        const creator = await client.creator.findUnique({
             where:{
                 username: parsedData.data.username,
                 password: hashedPassword
             }
         })
     
-        if(!user) {
+        if(!creator) {
             throw new Error();
         }
     
         const token = jwt.sign({
-            userId: req.userId,
-            role: req.role
+            creator: req.creatorId,
         }, JWT_SECRET)
 
         if(!token) {
@@ -90,8 +84,9 @@ teacherRouter.post("/signin", async(req, res) => {
     }
 })
 
+creatorRouter.use(creatorAuthMiddleware);
 
-teacherRouter.post("/course", async(req, res) => {
+creatorRouter.post("/course", async(req, res) => {
     const parsedData = CreateCourseSchema.safeParse(req.body);
     if(!parsedData.success) {
         res.status(400).json({
@@ -106,7 +101,7 @@ teacherRouter.post("/course", async(req, res) => {
                 price: parsedData.data.price,
                 name: parsedData.data.name,
                 imageUrl: parsedData.data.imageUrl,
-                creatorId: req.userId as string
+                creatorId: req.creatorId as string
             }
         })
 
@@ -126,23 +121,23 @@ teacherRouter.post("/course", async(req, res) => {
 })
 
 
-teacherRouter.get("/courses", async(req, res) => {
+creatorRouter.get("/courses", async(req, res) => {
     try {
-        const user = await client.user.findUnique({
+        const creator = await client.creator.findUnique({
             where: {
-                id: req.userId
+                id: req.creatorId
             },
             select: {
                 createdCourses: true
             }
         })
 
-        if(!user) {
+        if(!creator) {
             throw new Error();
         }
 
         res.json({
-            courses: user.createdCourses
+            courses: creator.createdCourses
         })
 
     } catch (error) {
@@ -153,12 +148,12 @@ teacherRouter.get("/courses", async(req, res) => {
 })
 
 
-teacherRouter.delete("/course/:id", async(req, res) => {
+creatorRouter.delete("/course/:id", async(req, res) => {
     try {
         const courseDeleted = await client.course.delete({
             where: {
                 id: req.params.id,
-                creatorId: req.userId
+                creatorId: req.creatorId
             }
         })
 
@@ -179,4 +174,4 @@ teacherRouter.delete("/course/:id", async(req, res) => {
     }
 })
 
-export default teacherRouter;
+export default creatorRouter;

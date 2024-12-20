@@ -4,14 +4,11 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"
 import { JWT_SECRET } from "../config";
-import authMiddleware from "../middleware/auth";
+import studentAuthMiddleware from "../middleware/studentAuth";
 
 
 const studentRouter = express.Router();
-
-studentRouter.use(authMiddleware);
 const client = new PrismaClient();
-
 
 studentRouter.post("/signup", async(req, res) => {
     const parsedData = SignUpSchema.safeParse(req.body);
@@ -22,20 +19,31 @@ studentRouter.post("/signup", async(req, res) => {
         return;
     }
 
+    const subdomain = req.headers.host?.split('.')[0];
+    const creator = await client.creator.findUnique({
+        where: {
+            name: subdomain
+        }
+    })
+    if(!creator) {
+        throw new Error();
+    }
+
     const hashedPassword = await bcrypt.hash(parsedData.data.password, 10);
     try {
-        const user = await client.user.create({
+        const student = await client.student.create({
             data: {
                 username: parsedData.data.username,
                 password: hashedPassword,
-                name: parsedData.data.name
+                name: parsedData.data.name,
+                creatorId: creator.id
             }
         })
         const token = jwt.sign({
-            userId: user.id
+            student: student.id
         }, JWT_SECRET)
         res.json({
-            userId: user.id,
+            studentId: student.id,
             token
         })
     } catch (error) {
@@ -55,22 +63,32 @@ studentRouter.post("/signin", async(req, res) => {
         return;
     }
 
+    const subdomain = req.headers.host?.split('.')[0];
+    const creator = await client.creator.findUnique({
+        where: {
+            name: subdomain
+        }
+    })
+    if(!creator) {
+        throw new Error();
+    }
+
     try {
         const  hashedPassword = await bcrypt.hash(parsedData.data.password, 10);
-        const user = await client.user.findUnique({
+        const student = await client.student.findFirst({
             where:{
                 username: parsedData.data.username,
-                password: hashedPassword
+                password: hashedPassword,
+                creatorId: creator.id
             }
         })
     
-        if(!user) {
+        if(!student) {
             throw new Error();
         }
     
         const token = jwt.sign({
-            userId: req.userId,
-            role: req.role
+            student: req.studentId
         }, JWT_SECRET)
 
         if(!token) {
@@ -89,11 +107,14 @@ studentRouter.post("/signin", async(req, res) => {
 })
 
 
+studentRouter.use(studentAuthMiddleware);
+
+
 studentRouter.get("/course/:id", async(req, res) => {
     try {
-        const student = await client.user.findUnique({
+        const student = await client.student.findUnique({
             where: {
-                id: req.userId
+                id: req.studentId
             },
             select: {
                 purchasedCourses: true
@@ -107,7 +128,7 @@ studentRouter.get("/course/:id", async(req, res) => {
             return;
         }
         
-        const course = student.purchasedCourses.filter((c) => c.id == req.userId);
+        const course = student.purchasedCourses.filter((c) => c.id == req.studentId);
 
         if(!course) {
             res.status(400).json({
@@ -124,6 +145,35 @@ studentRouter.get("/course/:id", async(req, res) => {
                 price: e.price,
                 imageUrl: e.imageUrl
             }))
+        })
+    } catch (error) {
+        res.status(400).json({
+            message: "Request failed"
+        })
+    }
+})
+
+
+studentRouter.get("/purchasedCourses", async(req, res) => {
+    try {
+        const student = await client.student.findUnique({
+            where: {
+                id: req.studentId
+            },
+            select: {
+                purchasedCourses: true
+            }
+        })
+
+        if(!student) {
+            res.status(400).json({
+                message: "No record found"
+            })
+            return;
+        }
+
+        res.json({
+            purchasedCoursed: student.purchasedCourses
         })
     } catch (error) {
         res.status(400).json({

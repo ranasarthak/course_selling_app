@@ -1,9 +1,9 @@
 import express from "express";
-import authMiddleware from "../middleware/auth";
 import { PrismaClient } from "@prisma/client";
+import studentAuthMiddleware from "../middleware/studentAuth";
 
-export const coursesRouter = express.Router();
-coursesRouter.use(authMiddleware);
+const coursesRouter = express.Router();
+coursesRouter.use(studentAuthMiddleware);
 const client = new PrismaClient();
 
 
@@ -27,7 +27,7 @@ coursesRouter.post("/purchase", async(req, res) => {
         
         const purchase = await client.purchases.create({
             data: {
-                buyerId: req.userId as string,
+                buyerId: req.studentId as string,
                 courseId: req.body.courseId,
                 amount: course.price
             }
@@ -40,23 +40,36 @@ coursesRouter.post("/purchase", async(req, res) => {
 })
 
 
-coursesRouter.get("/all", async(req, res) => {
+coursesRouter.get("/", async(req, res) => {
     try {
-        const user = await client.user.findUnique({
+        const student = await client.student.findUnique({
             where: {
-                id: req.userId
+                id: req.studentId
             },
             select: {
-                purchasedCourses: true
+                creatorId: true
             }
         })
 
-        if(!user) {
+        if(!student) {
+            throw new Error();
+        }
+
+        const creator = await client.creator.findUnique({
+            where: {
+                id: student.creatorId
+            },
+            select: {
+                createdCourses: true
+            }
+        })
+
+        if(!creator) {
             throw new Error();
         }
 
         res.json({
-            courses: user.purchasedCourses
+            courses: creator.createdCourses
         })
 
     } catch (error) {
@@ -65,3 +78,5 @@ coursesRouter.get("/all", async(req, res) => {
         })
     }
 })
+
+export default coursesRouter;

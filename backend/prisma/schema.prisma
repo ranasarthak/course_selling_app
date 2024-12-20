@@ -13,25 +13,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model Student {
   id                String @id @default(cuid())
   username          String
-  platformId        String  
-  platform          Platform @relation(fields: [platformId], references: [id])
+  creatorId         String  
+  creator           Creator @relation(fields: [creatorId], references: [id])
   password          String
   name              String
   purchasedCourses  Course[]  @relation
   purchases         Purchases[]
-  @@unique([username,platformId])
+  @@unique([username,creatorId])
 }
 
-//e.g 100xDev
-model Platform {
+model Creator {
   id                String @id @default(cuid())
   username          String @unique
   password          String
   name              String @unique
-  students          User[]
+  students          Student[]
   createdCourses    Course[]
 }
 
@@ -41,8 +40,8 @@ model Course {
   price             Int
   imageUrl          String  
   creatorId         String
-  platform          Platform @relation(fields: [creatorId], references: [id])
-  students          User[] @relation
+  creator           Creator @relation(fields: [creatorId], references: [id])
+  students          Student[] @relation
   purchased         Purchases[]
   @@unique([name,creatorId])
 }
@@ -51,7 +50,7 @@ model Purchases {
   id                String @id @unique @default(cuid())
   amount            Int
   buyerId           String
-  buyer             User @relation(fields: [buyerId], references: [id])
+  buyer             Student @relation(fields: [buyerId], references: [id])
   courseId          String
   course            Course @relation(fields: [courseId], references: [id])
   purchaseDate      DateTime @default(now())
