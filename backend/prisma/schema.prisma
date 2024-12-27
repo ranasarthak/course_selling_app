@@ -14,49 +14,46 @@ datasource db {
 }
 
 model Student {
-  id                String @id @default(cuid())
-  username          String
-  creatorId         String  
-  creator           Creator @relation(fields: [creatorId], references: [id])
-  password          String
-  name              String
-  purchasedCourses  Course[]  @relation
-  purchases         Purchases[]
-  @@unique([username,creatorId])
+  id               String      @id @default(cuid())
+  username         String
+  creatorId        String
+  creator          Creator     @relation(fields: [creatorId], references: [id])
+  password         String
+  name             String
+  purchasedCourses Course[]    @relation
+  purchases        Purchases[]
+
+  @@unique([username, creatorId])
 }
 
 model Creator {
-  id                String @id @default(cuid())
-  username          String @unique
-  password          String
-  name              String @unique
-  students          Student[]
-  createdCourses    Course[]
+  id             String    @id @default(cuid())
+  username       String    @unique
+  password       String
+  name           String    @unique
+  students       Student[]
+  createdCourses Course[]
 }
 
 model Course {
-  id                String @id @unique @default(cuid())
-  name              String
-  price             Int
-  imageUrl          String  
-  creatorId         String
-  creator           Creator @relation(fields: [creatorId], references: [id])
-  students          Student[] @relation
-  purchased         Purchases[]
-  @@unique([name,creatorId])
+  id        String      @id @unique @default(cuid())
+  name      String
+  price     Int
+  imageUrl  String
+  creatorId String
+  creator   Creator     @relation(fields: [creatorId], references: [id])
+  students  Student[]   @relation
+  purchased Purchases[]
+
+  @@unique([name, creatorId])
 }
 
 model Purchases {
-  id                String @id @unique @default(cuid())
-  amount            Int
-  buyerId           String
-  buyer             Student @relation(fields: [buyerId], references: [id])
-  courseId          String
-  course            Course @relation(fields: [courseId], references: [id])
-  purchaseDate      DateTime @default(now())
-}
-
-enum Role {
-  Teacher
-  Student
+  id           String   @id @unique @default(cuid())
+  amount       Int
+  buyerId      String
+  buyer        Student  @relation(fields: [buyerId], references: [id])
+  courseId     String
+  course       Course   @relation(fields: [courseId], references: [id])
+  purchaseDate DateTime @default(now())
 }

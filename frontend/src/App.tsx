@@ -1,11 +1,14 @@
-import './App.css'
-import Topbar from './components/TopBar'
+import { BrowserRouter } from "react-router-dom";
+import Home from "./pages/Home";
 
 function App() {
-
-  return <div>
-    <Topbar/>
-  </div>
+  return (
+    <>
+      <BrowserRouter>
+        <Home />
+      </BrowserRouter>
+    </>
+  );
 }
 
-export default App
+export default App;

@@ -1,5 +1,5 @@
 import express from "express";
-import { CreateCourseSchema, SignInSchema, SignUpSchema } from "../zod/validator";
+import { CreateCourseSchema, SignInSchema, SignUpSchema, UpdateCourseSchema } from "../zod/validator";
 import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config";
@@ -118,6 +118,39 @@ creatorRouter.post("/course", async(req, res) => {
         })
     }
    
+})
+
+creatorRouter.patch("/course/:id", async(req, res) => {
+    const parsedData = UpdateCourseSchema.safeParse(req.body);
+    if(!parsedData.success) {
+        res.status(400).json({
+            message: "Invalid inputs"
+        })
+        return;
+    }
+    try {
+        const course = await client.course.update({
+            where: {
+              id: req.params.id,
+              creatorId: req.creatorId 
+            },
+            data: {
+                name: parsedData.data.name,
+                price: parsedData.data.price,
+                imageUrl: parsedData.data.imageUrl
+            }
+        })
+
+        if(!course) {
+            res.status(400).json({
+                message: "No matching record found."
+            })
+        }
+    } catch (error) {
+        res.status(400).json({
+            message: "Course updation failed."
+        })
+    }
 })
 
 
