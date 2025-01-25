@@ -1,1 +1,1 @@
-{"root":["./src/config.ts","./src/index.ts","./src/auth/middleware.ts","./src/routes/index.ts","./src/routes/student.ts","./src/routes/teacher.ts","./src/zod/validator.ts"],"version":"5.7.2"}
+{"root":["./src/config.ts","./src/index.ts","./src/middleware/creatorauth.ts","./src/middleware/studentauth.ts","./src/routes/courses.ts","./src/routes/creator.ts","./src/routes/index.ts","./src/routes/lessons.ts","./src/routes/module.ts","./src/routes/student.ts","./src/services/s3.ts"],"version":"5.7.2"}

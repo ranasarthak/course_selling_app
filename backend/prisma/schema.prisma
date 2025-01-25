@@ -36,24 +36,52 @@ model Creator {
 }
 
 model Course {
-  id        String      @id @unique @default(cuid())
-  name      String
-  price     Int
-  imageUrl  String
-  creatorId String
-  creator   Creator     @relation(fields: [creatorId], references: [id])
-  students  Student[]   @relation
-  purchased Purchases[]
+  id          String      @id @unique @default(cuid())
+  title       String
+  description String
+  price       Int
+  discount    Int
+  imageUrl    String
+  creatorId   String
+  creator     Creator     @relation(fields: [creatorId], references: [id])
+  students    Student[]   @relation
+  purchased   Purchases[]
+  modules     Module[]    @relation("CourseToModule")
 
-  @@unique([name, creatorId])
+  @@unique([title, creatorId])
+}
+
+model Module {
+  id       String   @id @default(cuid())
+  title    String
+  order    Int
+  Course   Course   @relation("CourseToModule", fields: [courseId], references: [id], onDelete: Cascade)
+  courseId String
+  lessons  Lesson[] @relation("ModuleToLesson")
+}
+
+model Lesson {
+  id       String @id @default(cuid())
+  title    String
+  order    Int
+  url      String
+  module   Module @relation("ModuleToLesson", fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId String
 }
 
 model Purchases {
-  id           String   @id @unique @default(cuid())
-  amount       Int
-  buyerId      String
-  buyer        Student  @relation(fields: [buyerId], references: [id])
-  courseId     String
-  course       Course   @relation(fields: [courseId], references: [id])
-  purchaseDate DateTime @default(now())
+  id              String         @id @unique @default(cuid())
+  amount          Int
+  buyerId         String
+  razorpayOrderId String
+  buyer           Student        @relation(fields: [buyerId], references: [id])
+  courseId        String
+  course          Course         @relation(fields: [courseId], references: [id])
+  status          PurchaseStatus @default(PENDING)
+  purchaseDate    DateTime       @default(now())
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
 }

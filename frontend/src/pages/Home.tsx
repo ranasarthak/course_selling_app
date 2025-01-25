@@ -1,7 +1,6 @@
-import Carousel from "../components/Carousel";
-import Footer from "../components/Footer";
-import Sidebar from "../components/SideBar";
-import Topbar from "../components/TopBar";
+import About from "../components/Mainlayout/About";
+import Carousel from "../components/Mainlayout/Carousel";
+import Why from "../components/Mainlayout/Why";
 
 export default function Home() {
   const slides = [
@@ -19,15 +18,10 @@ export default function Home() {
     },
   ];
   return (
-    <div className="">
-      <Topbar />
-      <div className="flex h-screen w-full">
-        <Sidebar />
-        <div className="mx-auto w-[95%] space-y-10 pt-10 sm:w-3/5">
-          <Carousel slides={slides} />
-          <Footer />
-        </div>
-      </div>
+    <div>
+      <Carousel slides={slides} />
+      <Why />
+      <About />
     </div>
   );
 }

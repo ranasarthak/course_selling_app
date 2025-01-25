@@ -1,10 +1,9 @@
 import express from "express";
-import { CreateCourseSchema, SignInSchema, SignUpSchema, UpdateCourseSchema } from "../zod/validator";
+import { CreateCourseSchema, SignInSchema, SignUpSchema, UpdateCourseSchema } from "@ranasarthak/course_selling_app-common/dist";
 import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config";
 import bcrypt from "bcrypt";
-import authMiddleware from "../middleware/studentAuth";
 import creatorAuthMiddleware from "../middleware/creatorAuth";
 
 const creatorRouter = express.Router();
@@ -28,16 +27,25 @@ creatorRouter.post("/signup", async(req, res) => {
                 name: parsedData.data.name
             }
         })
+
         const token = jwt.sign({
             creator: creator.id
         }, JWT_SECRET)
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 24 * 60 * 60 * 1000
+        });
+
         res.json({
+            message: "Signup Successfull",
             creatorId: creator.id,
-            token
         })
     } catch (error) {
+        console.error(error);
         res.status(400).json({
-            message: "creator signup failed"
+            message: "Creator signup failed"
         })
     }
 })
@@ -53,36 +61,50 @@ creatorRouter.post("/signin", async(req, res) => {
     }
 
     try {
-        const  hashedPassword = await bcrypt.hash(parsedData.data.password, 10);
         const creator = await client.creator.findUnique({
             where:{
                 username: parsedData.data.username,
-                password: hashedPassword
             }
         })
     
         if(!creator) {
-            throw new Error();
+            res.status(401).json({
+                message: "No match found"
+            })
+            return;
+        }
+
+        const isPasswordValid = await bcrypt.compare(parsedData.data.password, creator.password);
+
+        if (!isPasswordValid) {
+            res.status(400).json({
+                message: "Invalid password.",
+            });
+            return;
         }
     
         const token = jwt.sign({
-            creator: req.creatorId,
+            creator: creator.id,
         }, JWT_SECRET)
 
-        if(!token) {
-            throw new Error();
-        }
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 24 * 60 * 60 * 1000
+        })
 
         res.json({
             message: "SignIn successful",
-            token
+            creatorId: creator.id
         })
     } catch (error) {
-        res.status(400).json({
+        console.error(error);
+        res.status(500).json({
             message: "SignIn failed"
         })
     }
 })
+
 
 creatorRouter.use(creatorAuthMiddleware);
 
@@ -94,13 +116,14 @@ creatorRouter.post("/course", async(req, res) => {
         })
         return;
     }
-
     try {
         const course = await client.course.create({
             data: {
-                price: parsedData.data.price,
-                name: parsedData.data.name,
+                price: parsedData.data.price * 100,
+                title: parsedData.data.title,
+                description: parsedData.data.description,
                 imageUrl: parsedData.data.imageUrl,
+                discount: parsedData.data.discount,
                 creatorId: req.creatorId as string
             }
         })
@@ -120,7 +143,7 @@ creatorRouter.post("/course", async(req, res) => {
    
 })
 
-creatorRouter.patch("/course/:id", async(req, res) => {
+creatorRouter.patch("/:id", async(req, res) => {
     const parsedData = UpdateCourseSchema.safeParse(req.body);
     if(!parsedData.success) {
         res.status(400).json({
@@ -135,8 +158,10 @@ creatorRouter.patch("/course/:id", async(req, res) => {
               creatorId: req.creatorId 
             },
             data: {
-                name: parsedData.data.name,
+                title: parsedData.data.title,
+                description: parsedData.data.description,
                 price: parsedData.data.price,
+                discount: parsedData.data.discount,
                 imageUrl: parsedData.data.imageUrl
             }
         })
@@ -166,7 +191,10 @@ creatorRouter.get("/courses", async(req, res) => {
         })
 
         if(!creator) {
-            throw new Error();
+            res.status(400).json({
+                message: "No matching record found"
+            })
+            return;
         }
 
         res.json({
@@ -180,8 +208,34 @@ creatorRouter.get("/courses", async(req, res) => {
     }
 })
 
+creatorRouter.get("/:id", async(req, res) => {
+    try {
+        const course = await client.course.findUnique({
+            where: {
+                id: req.params.id
+            },include: {
+                modules: true
+            }
+        })
 
-creatorRouter.delete("/course/:id", async(req, res) => {
+        if(!course) {
+            res.status(400).json({
+                message: "No matching record found."
+            })
+            return;
+        }
+
+        res.json({
+            course
+        })
+    } catch (error) {
+        res.status(500).json({
+            message: "Internal Server Error."
+        })
+    }
+})
+
+creatorRouter.delete("/:id", async(req, res) => {
     try {
         const courseDeleted = await client.course.delete({
             where: {

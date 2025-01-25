@@ -34,8 +34,8 @@ export default function Carousel({ slides }: SliderProps) {
   };
 
   return (
-    <div>
-      <div className="relative overflow-hidden">
+    <div className="w-full">
+      <div className="relative w-full overflow-hidden rounded-3xl py-2">
         <div
           className="flex transition duration-700 ease-out"
           style={{
@@ -56,7 +56,7 @@ export default function Carousel({ slides }: SliderProps) {
           </button>
         </div>
       </div>
-      <div className="flex w-full items-center justify-center gap-3 py-3">
+      <div className="flex w-full cursor-pointer items-center justify-center gap-3 py-3">
         {slides.map((s, i) => {
           return (
             <div
